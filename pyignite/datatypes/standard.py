@@ -14,20 +14,20 @@
 # limitations under the License.
 
 import ctypes
-from datetime import date, datetime, time, timedelta
 import decimal
+import uuid
+from datetime import date, datetime, time, timedelta
 from io import SEEK_CUR
 from math import ceil
 from typing import Tuple
-import uuid
 
 from pyignite.constants import *
 from pyignite.utils import datetime_hashcode, decimal_hashcode, hashcode
 from .base import IgniteDataType
+from .null_object import Nullable
 from .type_codes import *
 from .type_ids import *
 from .type_names import *
-from .null_object import Nullable
 
 __all__ = [
     'String', 'DecimalObject', 'UUIDObject', 'TimestampObject', 'DateObject',
@@ -287,6 +287,7 @@ class TimestampObject(StandardObject):
     type_code = TC_TIMESTAMP
     pythonic = tuple
     default = (datetime(1970, 1, 1), 0)
+    without_nano = True
 
     @classmethod
     def hashcode(cls, value: Tuple[datetime, int], **kwargs) -> int:
@@ -324,6 +325,9 @@ class TimestampObject(StandardObject):
 
     @classmethod
     def to_python_not_null(cls, ctypes_object, **kwargs):
+        if cls.without_nano:
+            return datetime.fromtimestamp(ctypes_object.epoch / 1000)
+
         return (
             datetime.fromtimestamp(ctypes_object.epoch / 1000),
             ctypes_object.fraction
